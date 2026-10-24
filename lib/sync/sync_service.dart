@@ -86,8 +86,16 @@ class SyncService extends ChangeNotifier {
     state.removeListener(_onLocalChange);
     _timer?.cancel();
     _timer = null;
-    await _sub?.cancel();
+    final sub = _sub;
     _sub = null;
+    // Підписку закриваємо, але НЕ чекаємо на завершення cancel(): стеження
+    // припиняється одразу, а очікування нічого не дає. Крім того, `await` на
+    // cancel() ламає «уявний час» у тестах екранів (тест зависає навічно).
+    if (sub != null) {
+      unawaited(sub.cancel().catchError((Object e) {
+        AppLog.add('sync: помилка закриття стеження: $e');
+      }));
+    }
     _uid = null;
     _dataKey = null;
     if (_status != SyncStatus.off) {

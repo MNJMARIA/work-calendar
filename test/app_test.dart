@@ -69,7 +69,12 @@ String sheetTotal(WidgetTester tester) =>
 Future<void> openTodaySheet(WidgetTester tester) async {
   await tester.tap(find.text('День'));
   await tester.pump();
-  await tester.tap(find.text('Додати вихід на роботу'));
+  // Коли таймер уже йде, картка «Йде робота» зсуває кнопку нижче екрана:
+  // спершу прокручуємо до неї, інакше натискання «промахується».
+  final add = find.text('Додати вихід на роботу');
+  await tester.ensureVisible(add);
+  await tester.pumpAndSettle();
+  await tester.tap(add);
   await tester.pumpAndSettle();
 }
 

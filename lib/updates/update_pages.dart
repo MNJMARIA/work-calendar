@@ -78,8 +78,13 @@ class _UpdatePageState extends State<UpdatePage> {
     super.didChangeDependencies();
     if (!_started) {
       _started = true;
-      // Одразу перевіряємо, чи є нова версія.
-      AppServicesScope.of(context).updates?.check();
+      // Одразу перевіряємо, чи є нова версія. Робимо це ПІСЛЯ малювання екрана:
+      // перевірка одразу повідомляє слухачів (смужку оновлення), а під час
+      // побудови екрана це заборонено.
+      final updates = AppServicesScope.of(context).updates;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) updates?.check();
+      });
     }
   }
 
@@ -142,7 +147,7 @@ class _UpdatePageState extends State<UpdatePage> {
             Text('Завантаження… ${updates.percent}%'),
           ] else if (status == UpdateStatus.installing)
             const Text(
-              'Підтвердь встановлення у вікні телефона. Після цього додаток '
+              'Підтверди встановлення у вікні телефона. Після цього додаток '
                   'перезапуститься вже в новій версії.',
             )
           else

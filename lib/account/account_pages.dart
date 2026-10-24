@@ -331,7 +331,7 @@ class VerifyEmailPage extends StatelessWidget {
         Icon(Icons.mark_email_unread_outlined, size: 56, color: theme.colorScheme.primary),
         const SizedBox(height: 16),
         Text(
-          'Підтвердь пошту',
+          'Підтверди пошту',
           textAlign: TextAlign.center,
           style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),

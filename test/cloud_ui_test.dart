@@ -184,13 +184,13 @@ void main() {
       await typeKey(tester, 'field-password', 'password123');
       await typeKey(tester, 'field-password2', 'password123');
       await tapKey(tester, 'auth-submit');
-      expect(find.text('Підтвердь пошту'), findsOneWidget);
+      expect(find.text('Підтверди пошту'), findsOneWidget);
       expect(p.auth.verificationsSent, 1);
 
       // 2. Спершу пошту не підтверджено.
       await tapKey(tester, 'verify-done');
       expect(find.byKey(const Key('auth-error')), findsOneWidget);
-      expect(find.text('Підтвердь пошту'), findsOneWidget);
+      expect(find.text('Підтверди пошту'), findsOneWidget);
 
       // 3. Підтвердила пошту → показується ключ відновлення.
       p.auth.markVerified();
