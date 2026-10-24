@@ -9,6 +9,8 @@
 name: Випуск оновлення
 
 on:
+  # Кнопка «Run workflow» на вкладці Actions: запустити збірку вручну.
+  workflow_dispatch:
   push:
     branches: [main]
     # Зміни лише в описах не випускають нову версію.
