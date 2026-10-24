@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// Правила доступу до бази. Вставляються в Firebase Console → Firestore → Rules.
+// Замініть PUT_ADMIN_UID_HERE на свій UID (див. інструкцію, крок «Адмін-доступ»).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.uid == 'PUT_ADMIN_UID_HERE';
+    }
+
+    // Дані користувача (зашифровані місяці та ключ): лише власник.
+    match /users/{uid}/{document=**} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Звіти про проблеми: будь-який користувач може створити свій звіт
+    // обмеженого розміру, а читати й видаляти може лише розробниця.
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(
+             ['category', 'text', 'appVersion', 'device', 'email', 'uid', 'log', 'createdAt'])
+        && request.resource.data.keys().hasAll(
+             ['category', 'text', 'appVersion', 'device', 'email', 'uid', 'log', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.category in ['bug', 'idea', 'other']
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000
+        && request.resource.data.log is string
+        && request.resource.data.log.size() <= 6000
+        && request.resource.data.appVersion is string
+        && request.resource.data.appVersion.size() <= 60
+        && request.resource.data.device is string
+        && request.resource.data.device.size() <= 200
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 200
+        && request.resource.data.createdAt is int;
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+
+    // Усе інше заборонено.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
