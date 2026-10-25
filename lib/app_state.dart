@@ -53,6 +53,9 @@ class AppState extends ChangeNotifier {
   /// Стандартна тривалість виходу (у хвилинах).
   int _defaultShiftMinutes = kDefaultShiftMinutes;
 
+  /// Ім'я працівника для звітів (ПІБ).
+  String _employeeName = '';
+
   /// Коли запущено таймер (null — таймер не йде).
   DateTime? _timerStart;
 
@@ -63,6 +66,7 @@ class AppState extends ChangeNotifier {
   bool get showRemaining => _showRemaining;
   ThemeMode get themeMode => _themeMode;
   int get defaultShiftMinutes => _defaultShiftMinutes;
+  String get employeeName => _employeeName;
   DateTime? get timerStart => _timerStart;
   bool get timerRunning => _timerStart != null;
 
@@ -331,6 +335,15 @@ class AppState extends ChangeNotifier {
     _prefs.setString(kPlanKey, jsonEncode(_plan));
   }
 
+  /// Запам'ятати ім'я працівника для звітів.
+  void setEmployeeName(String name) {
+    final value = name.trim();
+    if (value == _employeeName) return;
+    _employeeName = value;
+    _saveSettings();
+    notifyListeners();
+  }
+
   void _saveSettings() {
     _prefs.setString(
       kSettingsKey,
@@ -338,6 +351,7 @@ class AppState extends ChangeNotifier {
         'showRemaining': _showRemaining,
         'defaultShiftMinutes': _defaultShiftMinutes,
         'theme': _themeMode.name,
+        'employee': _employeeName,
       }),
     );
   }
@@ -368,6 +382,7 @@ class AppState extends ChangeNotifier {
         _showRemaining = (m['showRemaining'] as bool?) ?? true;
         _defaultShiftMinutes =
             (m['defaultShiftMinutes'] as int?) ?? kDefaultShiftMinutes;
+        _employeeName = (m['employee'] as String?) ?? '';
         final theme = m['theme'] as String?;
         _themeMode = ThemeMode.values.firstWhere(
               (e) => e.name == theme,
