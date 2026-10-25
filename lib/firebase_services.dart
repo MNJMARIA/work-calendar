@@ -388,21 +388,33 @@ Future<AppServices> createCloudServices(SharedPreferences prefs, AppState state)
   await Firebase.initializeApp();
 
   // Автоматичні звіти про збої: ловимо помилки Flutter і помилки поза ним.
+  // Якщо Crashlytics не запустився, це не повинно ламати вхід в акаунт.
   final crash = FirebaseCrashControl(prefs);
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(crash.enabled);
-  FlutterError.onError = (details) {
-    AppLog.add('flutter: ${details.exceptionAsString()}');
-    FirebaseCrashlytics.instance.recordFlutterFatalError(details);
-  };
-  PlatformDispatcher.instance.onError = (error, stack) {
-    AppLog.add('error: $error');
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+  try {
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(crash.enabled);
+    FlutterError.onError = (details) {
+      AppLog.add('flutter: ${details.exceptionAsString()}');
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      AppLog.add('error: $error');
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  } catch (e) {
+    AppLog.add('crashlytics: не запустився: $e');
+  }
 
-  final info = await PackageInfo.fromPlatform();
-  final build = int.tryParse(info.buildNumber) ?? 0;
-  final versionText = '${info.version} ($build)';
+  var appVersion = '';
+  var build = 0;
+  try {
+    final info = await PackageInfo.fromPlatform();
+    appVersion = info.version;
+    build = int.tryParse(info.buildNumber) ?? 0;
+  } catch (e) {
+    AppLog.add('версія: не вдалося прочитати: $e');
+  }
+  final versionText = '$appVersion ($build)';
   final device = await _deviceDescription();
 
   final cloud = FirestoreCloudStore();
@@ -417,7 +429,7 @@ Future<AppServices> createCloudServices(SharedPreferences prefs, AppState state)
   );
   final updates = UpdateService(
     currentBuild: build,
-    currentVersion: info.version,
+    currentVersion: appVersion,
     fetcher: githubLatestRelease(kGithubOwner, kGithubRepo),
     installer: OtaApkInstaller(),
   );

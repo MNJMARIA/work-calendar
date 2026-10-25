@@ -1,6 +1,7 @@
 // Розділи налаштувань, пов'язані з хмарою: акаунт, оновлення, підтримка.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../reports/report_pages.dart';
 import 'account_controller.dart';
@@ -18,9 +19,41 @@ class CloudSettingsSection extends StatelessWidget {
     return Column(
       children: [
         if (services.account != null) _AccountTiles(services: services),
+        if (services.account == null && services.cloudError != null)
+          _CloudErrorTile(error: services.cloudError!),
         if (services.updates != null) _UpdateTile(services: services),
         _SupportTiles(services: services),
       ],
+    );
+  }
+}
+
+/// Хмара не запустилась: показуємо причину (її можна скопіювати й надіслати розробниці).
+class _CloudErrorTile extends StatelessWidget {
+  const _CloudErrorTile({required this.error});
+
+  final String error;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      key: const Key('cloud-error'),
+      leading: Icon(Icons.cloud_off, color: scheme.error),
+      title: const Text('Хмара не підключилась'),
+      subtitle: Text(
+        'Календар працює, але без акаунта й синхронізації. '
+            'Торкнись, щоб скопіювати текст помилки.\n\n$error',
+      ),
+      isThreeLine: true,
+      onTap: () async {
+        await Clipboard.setData(ClipboardData(text: error));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Текст помилки скопійовано')),
+          );
+        }
+      },
     );
   }
 }

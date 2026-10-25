@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import 'account/account_settings.dart';
+import 'app_config.dart';
 import 'app_state.dart';
 import 'dialogs.dart';
 import 'logic.dart';
@@ -86,17 +87,45 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               ListTile(
-                title: const Text('Версія'),
-                subtitle: Text(
-                  AppServicesScope.of(context).currentVersion.isEmpty
-                      ? '0.5.0 — етап 5 (хмара, оновлення, звіти)'
-                      : AppServicesScope.of(context).currentVersion,
-                ),
+                key: const Key('about-tile'),
+                leading: const Icon(Icons.info_outline),
+                title: const Text('Про додаток'),
+                subtitle: Text(_versionText(context)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showAbout(context),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  String _versionText(BuildContext context) {
+    final v = AppServicesScope.of(context).currentVersion;
+    return v.isEmpty ? kAppVersionFallback : v;
+  }
+
+  void _showAbout(BuildContext context) {
+    showAboutDialog(
+      context: context,
+      applicationName: kAppName,
+      applicationVersion: _versionText(context),
+      applicationIcon: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.asset(
+          'assets/icon/icon.png',
+          width: 56,
+          height: 56,
+          errorBuilder: (_, __, ___) => const Icon(Icons.calendar_month, size: 48),
+        ),
+      ),
+      applicationLegalese: 'Розробниця: $kDeveloperName',
+      children: const [
+        SizedBox(height: 12),
+        Text('Безкоштовний робочий календар: облік годин, планування змін, '
+            'хмарна синхронізація та оновлення.'),
+      ],
     );
   }
 }

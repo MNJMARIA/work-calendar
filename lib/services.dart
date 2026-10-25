@@ -46,6 +46,7 @@ class AppServices {
     this.currentVersion = '',
     this.openUrl,
     this.justUpdatedFrom,
+    this.cloudError,
     UpdateOpenSignal? openUpdateSignal,
   })  : reports = reports ?? OfflineReportService(),
         openUpdateSignal = openUpdateSignal ?? UpdateOpenSignal();
@@ -67,6 +68,10 @@ class AppServices {
   final Future<void> Function(String url)? openUrl;
 
   final UpdateOpenSignal openUpdateSignal;
+
+  /// Якщо хмара не запустилась: що саме пішло не так (показується в налаштуваннях,
+  /// щоб причину було видно, а не «тихо» працювати без акаунта).
+  final String? cloudError;
 
   /// Номер збірки, з якої додаток щойно оновився (для вікна «Додаток оновлено»).
   int? justUpdatedFrom;
