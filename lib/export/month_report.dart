@@ -190,6 +190,10 @@ ByteData _bytesOf(Uint8List list) =>
 
 /// Збирає PDF-звіт. [regularFont] і [boldFont] — файли шрифту з українськими
 /// літерами (у додатку лежать у assets/fonts). Повертає готовий PDF-файл.
+/// Розміри тексту звіту: звичайний, великий, дуже великий.
+const List<double> kReportTextScales = [1.0, 1.25, 1.5];
+const List<String> kReportTextLabels = ['Звичайний', 'Великий', 'Дуже великий'];
+
 Future<Uint8List> buildMonthReportPdf(
     MonthReport report, {
       required String employee,
@@ -197,6 +201,7 @@ Future<Uint8List> buildMonthReportPdf(
       required Uint8List regularFont,
       required Uint8List boldFont,
       bool onlyShiftDays = false,
+      double textScale = 1.0,
     }) async {
   final base = pw.Font.ttf(_bytesOf(regularFont));
   final bold = pw.Font.ttf(_bytesOf(boldFont));
@@ -211,7 +216,7 @@ Future<Uint8List> buildMonthReportPdf(
 
   pw.TextStyle style({double size = 10.5, bool strong = false, PdfColor? color}) {
     return pw.TextStyle(
-      fontSize: size,
+      fontSize: size * textScale,
       fontWeight: strong ? pw.FontWeight.bold : pw.FontWeight.normal,
       color: color ?? _ink,
     );
@@ -345,7 +350,7 @@ Future<Uint8List> buildMonthReportPdf(
         pw.SizedBox(height: 12),
         pw.Table(
           columnWidths: {
-            0: pw.FixedColumnWidth(120),
+            0: pw.FixedColumnWidth(120 * textScale),
             1: pw.FlexColumnWidth(),
           },
           children: [
@@ -383,7 +388,7 @@ Future<Uint8List> buildMonthReportPdf(
         pw.Table(
           border: border,
           columnWidths: {
-            0: pw.FixedColumnWidth(24),
+            0: pw.FixedColumnWidth(24 * textScale),
             1: pw.FlexColumnWidth(3),
             2: pw.FlexColumnWidth(1.6),
             3: pw.FlexColumnWidth(2),
@@ -422,7 +427,7 @@ Future<Uint8List> buildMonthReportPdf(
         pw.Table(
           border: border,
           columnWidths: {
-            0: pw.FixedColumnWidth(24),
+            0: pw.FixedColumnWidth(24 * textScale),
             1: pw.FlexColumnWidth(2.2),
             2: pw.FlexColumnWidth(2.2),
             3: pw.FlexColumnWidth(2.2),
@@ -492,12 +497,12 @@ Future<Uint8List> buildMonthReportPdf(
             pw.SizedBox(width: 12),
             pw.Text('Дата', style: style(size: 11)),
             pw.SizedBox(width: 12),
-            pw.SizedBox(width: 90, child: pw.Container(height: 0.8, color: _ink)),
+            pw.SizedBox(width: 90 * textScale, child: pw.Container(height: 0.8, color: _ink)),
           ],
         ),
         pw.SizedBox(height: 3),
         pw.Padding(
-          padding: pw.EdgeInsets.only(left: 64),
+          padding: pw.EdgeInsets.only(left: 64 * textScale),
           child: pw.Text('(підпис)', style: style(size: 8.5, color: _muted)),
         ),
         pw.SizedBox(height: 22),
@@ -510,12 +515,12 @@ Future<Uint8List> buildMonthReportPdf(
             pw.SizedBox(width: 12),
             pw.Text('Дата', style: style(size: 11)),
             pw.SizedBox(width: 12),
-            pw.SizedBox(width: 90, child: pw.Container(height: 0.8, color: _ink)),
+            pw.SizedBox(width: 90 * textScale, child: pw.Container(height: 0.8, color: _ink)),
           ],
         ),
         pw.SizedBox(height: 3),
         pw.Padding(
-          padding: pw.EdgeInsets.only(left: 64),
+          padding: pw.EdgeInsets.only(left: 64 * textScale),
           child: pw.Text('(підпис)', style: style(size: 8.5, color: _muted)),
         ),
       ],

@@ -88,6 +88,22 @@ void main() {
       expect(String.fromCharCodes(bytes.sublist(0, 5)), '%PDF-');
     });
 
+    test('збільшений текст: PDF збирається при кожному розмірі', () async {
+      final r = MonthReport(year: 2026, month: 10, shifts: shifts, today: DateTime(2026, 10, 25));
+      for (final scale in kReportTextScales) {
+        final bytes = await buildMonthReportPdf(
+          r,
+          employee: 'Степанова Марія Олександрівна',
+          generatedAt: DateTime(2026, 10, 25),
+          regularFont: font('LiberationSerif-Regular.ttf'),
+          boldFont: font('LiberationSerif-Bold.ttf'),
+          textScale: scale,
+        );
+        expect(String.fromCharCodes(bytes.sublist(0, 5)), '%PDF-', reason: 'масштаб $scale');
+      }
+      expect(kReportTextScales.length, kReportTextLabels.length);
+    });
+
     test('варіант «лише дні з виходами» і порожнє ім\'я теж збираються', () async {
       final r = MonthReport(year: 2026, month: 10, shifts: shifts, today: DateTime(2026, 11, 5));
       final bytes = await buildMonthReportPdf(
@@ -115,6 +131,54 @@ void main() {
     });
   });
 
+  group('Розмір тексту', () {
+    testWidgets('вибір розміру перебудовує звіт і запам\'ятовується', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final state = AppState(prefs);
+      final scales = <double>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MonthReportPage(
+            state: state,
+            initialMonth: DateTime(2026, 10, 25),
+            clock: () => DateTime(2026, 10, 25),
+            pdfBuilder: (r, e, g, o, scale) async {
+              scales.add(scale);
+              return Uint8List.fromList([37, 80, 68, 70, 45]);
+            },
+            previewBuilder: (c, p, n) => const SizedBox(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(scales.last, 1.0);
+
+      await tester.tap(find.byKey(const Key('report-text-size-1')));
+      await tester.pumpAndSettle();
+      expect(scales.last, 1.25);
+      expect(state.reportTextSize, 1);
+
+      await tester.tap(find.byKey(const Key('report-text-size-2')));
+      await tester.pumpAndSettle();
+      expect(scales.last, 1.5);
+
+      // Після «перезапуску» вибір на місці.
+      expect(AppState(prefs).reportTextSize, 2);
+    });
+
+    test('пошкоджене значення розміру не ламає стан', () async {
+      SharedPreferences.setMockInitialValues({
+        kSettingsKey: '{"reportTextSize": 99}',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      expect(AppState(prefs).reportTextSize, 2);
+    });
+  });
+
   group('Екран', () {
     Future<AppState> makeState() async {
       SharedPreferences.setMockInitialValues({});
@@ -139,7 +203,7 @@ void main() {
             initialMonth: DateTime(2026, 10, 25),
             suggestedName: 'Марія Степанова',
             clock: () => DateTime(2026, 10, 25),
-            pdfBuilder: (report, employee, generatedAt, onlyShiftDays) async {
+            pdfBuilder: (report, employee, generatedAt, onlyShiftDays, textScale) async {
               built.add('${report.year}-${report.month}|$employee|$onlyShiftDays');
               return Uint8List.fromList([37, 80, 68, 70, 45, report.month]);
             },
@@ -189,7 +253,7 @@ void main() {
           initialMonth: DateTime(2026, 10, 1),
           suggestedName: 'Запасне ім\'я',
           clock: () => DateTime(2026, 10, 25),
-          pdfBuilder: (r, e, g, o) async => Uint8List.fromList([37, 80, 68, 70, 45]),
+          pdfBuilder: (r, e, g, o, sc) async => Uint8List.fromList([37, 80, 68, 70, 45]),
           previewBuilder: (c, p, n) => const SizedBox(),
         ),
       );
@@ -216,7 +280,7 @@ void main() {
             state: state,
             initialMonth: DateTime(2026, 10, 1),
             clock: () => DateTime(2026, 10, 25),
-            pdfBuilder: (r, e, g, o) async => throw StateError('тестова помилка'),
+            pdfBuilder: (r, e, g, o, sc) async => throw StateError('тестова помилка'),
           ),
         ),
       );

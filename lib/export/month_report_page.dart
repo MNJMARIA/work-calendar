@@ -59,6 +59,7 @@ class MonthReportPage extends StatefulWidget {
       String employee,
       DateTime generatedAt,
       bool onlyShiftDays,
+      double textScale,
       )? pdfBuilder;
   final DateTime Function()? clock;
   final Widget Function(BuildContext context, Uint8List pdf, String fileName)? previewBuilder;
@@ -78,6 +79,8 @@ class _MonthReportPageState extends State<MonthReportPage> {
   Timer? _debounce;
   int _serial = 0;
   bool _archiving = false;
+
+  double get _scale => kReportTextScales[widget.state.reportTextSize.clamp(0, 2)];
 
   DateTime _now() => (widget.clock ?? DateTime.now)();
 
@@ -113,7 +116,7 @@ class _MonthReportPageState extends State<MonthReportPage> {
       final custom = widget.pdfBuilder;
       final Uint8List bytes;
       if (custom != null) {
-        bytes = await custom(report, _name.text.trim(), now, _onlyShiftDays);
+        bytes = await custom(report, _name.text.trim(), now, _onlyShiftDays, _scale);
       } else {
         final fonts = await loadAssetReportFonts();
         bytes = await buildMonthReportPdf(
@@ -123,6 +126,7 @@ class _MonthReportPageState extends State<MonthReportPage> {
           regularFont: fonts.regular,
           boldFont: fonts.bold,
           onlyShiftDays: _onlyShiftDays,
+          textScale: _scale,
         );
       }
       if (!mounted || serial != _serial) return;
@@ -292,6 +296,42 @@ class _MonthReportPageState extends State<MonthReportPage> {
                       labelText: 'Працівник (ПІБ для звіту)',
                       border: OutlineInputBorder(),
                       isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Розмір тексту у звіті', style: theme.textTheme.labelLarge),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<int>(
+                      key: const Key('report-text-size'),
+                      showSelectedIcon: false,
+                      style: const ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                        padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 4)),
+                      ),
+                      segments: [
+                        for (var i = 0; i < kReportTextLabels.length; i++)
+                          ButtonSegment<int>(
+                            value: i,
+                            label: Text(
+                              kReportTextLabels[i],
+                              key: Key('report-text-size-$i'),
+                              maxLines: 1,
+                              softWrap: false,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      selected: {widget.state.reportTextSize.clamp(0, 2)},
+                      onSelectionChanged: (values) {
+                        widget.state.setReportTextSize(values.first);
+                        setState(() => _pdf = null);
+                        _build();
+                      },
                     ),
                   ),
                   SwitchListTile(

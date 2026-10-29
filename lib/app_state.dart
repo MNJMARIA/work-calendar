@@ -56,6 +56,9 @@ class AppState extends ChangeNotifier {
   /// Ім'я працівника для звітів (ПІБ).
   String _employeeName = '';
 
+  /// Розмір тексту у звіті: 0 звичайний, 1 великий, 2 дуже великий.
+  int _reportTextSize = 0;
+
   /// Нагадування про початок зміни (у дні, коли в календарі є вихід).
   bool _remindStart = false;
   int _remindStartMinutes = 7 * 60 + 30;
@@ -78,6 +81,7 @@ class AppState extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   int get defaultShiftMinutes => _defaultShiftMinutes;
   String get employeeName => _employeeName;
+  int get reportTextSize => _reportTextSize;
   bool get remindStart => _remindStart;
   int get remindStartMinutes => _remindStartMinutes;
   bool get remindEnd => _remindEnd;
@@ -393,6 +397,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Розмір тексту у звіті (0..2).
+  void setReportTextSize(int value) {
+    final v = value < 0 ? 0 : (value > 2 ? 2 : value);
+    if (v == _reportTextSize) return;
+    _reportTextSize = v;
+    _saveSettings();
+    notifyListeners();
+  }
+
   void _saveSettings() {
     _prefs.setString(
       kSettingsKey,
@@ -401,6 +414,7 @@ class AppState extends ChangeNotifier {
         'defaultShiftMinutes': _defaultShiftMinutes,
         'theme': _themeMode.name,
         'employee': _employeeName,
+        'reportTextSize': _reportTextSize,
         'remindStart': _remindStart,
         'remindStartMinutes': _remindStartMinutes,
         'remindEnd': _remindEnd,
@@ -437,6 +451,8 @@ class AppState extends ChangeNotifier {
         _defaultShiftMinutes =
             (m['defaultShiftMinutes'] as int?) ?? kDefaultShiftMinutes;
         _employeeName = (m['employee'] as String?) ?? '';
+        final size = (m['reportTextSize'] as int?) ?? 0;
+        _reportTextSize = size < 0 ? 0 : (size > 2 ? 2 : size);
         _remindStart = (m['remindStart'] as bool?) ?? false;
         _remindStartMinutes = (m['remindStartMinutes'] as int?) ?? 7 * 60 + 30;
         _remindEnd = (m['remindEnd'] as bool?) ?? false;
