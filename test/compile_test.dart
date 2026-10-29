@@ -4,6 +4,9 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:work_calendar/export/month_report_page.dart';
+import 'package:work_calendar/export/reports_page.dart';
+import 'package:work_calendar/notifications/notification_settings_page.dart';
+import 'package:work_calendar/notifications/reminder_service.dart';
 import 'package:work_calendar/firebase_services.dart';
 import 'package:work_calendar/main.dart' as app;
 import 'package:work_calendar/updates/github_fetcher.dart';
@@ -17,5 +20,8 @@ void main() {
     expect(OtaApkInstaller(), isNotNull);
     expect(FirebaseCrashControl, isNotNull);
     expect(MonthReportPage, isNotNull);
+    expect(ReportsPage, isNotNull);
+    expect(NotificationSettingsPage, isNotNull);
+    expect(LocalReminderScheduler(), isNotNull);
   });
 }

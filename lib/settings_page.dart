@@ -7,6 +7,7 @@ import 'app_config.dart';
 import 'app_state.dart';
 import 'dialogs.dart';
 import 'logic.dart';
+import 'notifications/notification_settings_page.dart';
 import 'services.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -75,6 +76,18 @@ class SettingsPage extends StatelessWidget {
                   final minutes = result?.minutes;
                   if (minutes != null) state.setDefaultShiftMinutes(minutes);
                 },
+              ),
+              ListTile(
+                key: const Key('notifications-tile'),
+                leading: const Icon(Icons.notifications_outlined),
+                title: const Text('Сповіщення'),
+                subtitle: const Text('Нагадування про зміни, сповіщення про оновлення'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => NotificationSettingsPage(state: state),
+                  ),
+                ),
               ),
               const Divider(),
               // Акаунт, оновлення, звіти про проблеми (якщо підключена хмара).

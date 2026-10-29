@@ -21,7 +21,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show FlutterError;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -314,7 +314,7 @@ class FirestoreReportService implements ReportService {
       device: device,
       email: user.email ?? '',
       uid: user.uid,
-      logLines: AppLog.tail(40),
+      logLines: AppLog.reportLines(),
       nowMillis: DateTime.now().millisecondsSinceEpoch,
     );
     try {
@@ -444,11 +444,12 @@ Future<AppServices> createCloudServices(SharedPreferences prefs, AppState state)
     currentVersion: versionText,
     openUrl: (url) => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
     justUpdatedFrom: detectJustUpdated(prefs, build),
+    setUpdatePush: _setUpdatePush,
   );
 
   unawaited(account.init());
   unawaited(updates.check());
-  unawaited(_setupPush(services));
+  unawaited(_setupPush(services, state.pushUpdates));
   AppLog.add('start: версія $versionText, $device');
   return services;
 }
@@ -463,11 +464,27 @@ Future<String> _deviceDescription() async {
 }
 
 /// Сповіщення про оновлення: підписка на тему, обробка натискань.
-Future<void> _setupPush(AppServices services) async {
+Future<void> _setUpdatePush(bool enabled) async {
   try {
     final messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission();
-    await messaging.subscribeToTopic(kUpdatesTopic);
+    if (enabled) {
+      await messaging.requestPermission();
+      await messaging.subscribeToTopic(kUpdatesTopic);
+    } else {
+      await messaging.unsubscribeFromTopic(kUpdatesTopic);
+    }
+  } catch (e) {
+    AppLog.add('push: не вдалося змінити підписку: $e');
+  }
+}
+
+Future<void> _setupPush(AppServices services, bool subscribe) async {
+  try {
+    final messaging = FirebaseMessaging.instance;
+    if (subscribe) {
+      await messaging.requestPermission();
+      await messaging.subscribeToTopic(kUpdatesTopic);
+    }
 
     // Додаток було закрито, і його відкрили натиском на сповіщення.
     final initial = await messaging.getInitialMessage();

@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 
 import 'account/account_pages.dart';
+import 'export/reports_page.dart';
 import 'app_state.dart';
 import 'calendar_page.dart';
 import 'planning_page.dart';
@@ -66,7 +67,7 @@ class WorkCalendarApp extends StatelessWidget {
   }
 }
 
-/// Оболонка з нижнім меню «Календар / Планування».
+/// Оболонка з нижнім меню «Календар / Планування / Звіти».
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.state});
 
@@ -143,13 +144,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // IndexedStack тримає обидві вкладки «живими»:
+      // IndexedStack тримає всі вкладки «живими»:
       // при перемиканні нічого не втрачається.
       body: IndexedStack(
         index: _index,
         children: [
           CalendarPage(state: widget.state),
           PlanningPage(state: widget.state),
+          ReportsPage(state: widget.state),
         ],
       ),
       bottomNavigationBar: Column(
@@ -170,6 +172,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                 icon: Icon(Icons.edit_calendar_outlined),
                 selectedIcon: Icon(Icons.edit_calendar),
                 label: 'Планування',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.description_outlined),
+                selectedIcon: Icon(Icons.description),
+                label: 'Звіти',
               ),
             ],
           ),

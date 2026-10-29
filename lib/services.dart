@@ -6,6 +6,8 @@
 import 'package:flutter/widgets.dart';
 
 import 'account/account_controller.dart';
+import 'export/report_archive.dart';
+import 'notifications/reminder_service.dart';
 import 'reports/report_service.dart';
 import 'sync/sync_service.dart';
 import 'updates/update_service.dart';
@@ -47,6 +49,9 @@ class AppServices {
     this.openUrl,
     this.justUpdatedFrom,
     this.cloudError,
+    this.archive,
+    this.reminders,
+    this.setUpdatePush,
     UpdateOpenSignal? openUpdateSignal,
   })  : reports = reports ?? OfflineReportService(),
         openUpdateSignal = openUpdateSignal ?? UpdateOpenSignal();
@@ -72,6 +77,35 @@ class AppServices {
   /// Якщо хмара не запустилась: що саме пішло не так (показується в налаштуваннях,
   /// щоб причину було видно, а не «тихо» працювати без акаунта).
   final String? cloudError;
+
+  /// Архів сформованих звітів (null — недоступний).
+  final ReportArchive? archive;
+
+  /// Нагадування про зміни (null — недоступні, наприклад у тестах).
+  final ReminderController? reminders;
+
+  /// Увімкнути/вимкнути сповіщення про оновлення (потрібна хмара).
+  final Future<void> Function(bool enabled)? setUpdatePush;
+
+  /// Копія з доданими архівом і нагадуваннями (їх створює main.dart).
+  AppServices copyWith({ReportArchive? archive, ReminderController? reminders}) {
+    return AppServices(
+      account: account,
+      sync: sync,
+      updates: updates,
+      reports: reports,
+      crash: crash,
+      adminUid: adminUid,
+      currentVersion: currentVersion,
+      openUrl: openUrl,
+      justUpdatedFrom: justUpdatedFrom,
+      cloudError: cloudError,
+      archive: archive ?? this.archive,
+      reminders: reminders ?? this.reminders,
+      setUpdatePush: setUpdatePush,
+      openUpdateSignal: openUpdateSignal,
+    );
+  }
 
   /// Номер збірки, з якої додаток щойно оновився (для вікна «Додаток оновлено»).
   int? justUpdatedFrom;

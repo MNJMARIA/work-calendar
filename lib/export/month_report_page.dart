@@ -12,6 +12,7 @@ import '../app_state.dart';
 import '../diagnostics.dart';
 import '../logic.dart';
 import 'month_report.dart';
+import 'report_archive.dart';
 
 /// Шрифти для PDF (звичайний і жирний).
 class ReportFonts {
@@ -35,6 +36,7 @@ class MonthReportPage extends StatefulWidget {
     required this.state,
     required this.initialMonth,
     this.suggestedName = '',
+    this.archive,
     this.pdfBuilder,
     this.clock,
     this.previewBuilder,
@@ -47,6 +49,9 @@ class MonthReportPage extends StatefulWidget {
 
   /// Ім'я, яке підставити, якщо користувач ще не вводив своє (ім'я з акаунта).
   final String suggestedName;
+
+  /// Архів, куди можна зберегти звіт (null — кнопки архіву немає).
+  final ReportArchive? archive;
 
   /// Для тестів: власне складання PDF, годинник, перегляд і кнопки.
   final Future<Uint8List> Function(
@@ -72,6 +77,7 @@ class _MonthReportPageState extends State<MonthReportPage> {
   String? _error;
   Timer? _debounce;
   int _serial = 0;
+  bool _archiving = false;
 
   DateTime _now() => (widget.clock ?? DateTime.now)();
 
@@ -172,6 +178,29 @@ class _MonthReportPageState extends State<MonthReportPage> {
     }
   }
 
+  Future<void> _saveToArchive() async {
+    final pdf = _pdf;
+    final archive = widget.archive;
+    if (pdf == null || archive == null || _archiving) return;
+    setState(() => _archiving = true);
+    try {
+      await archive.add(
+        year: _month.year,
+        month: _month.month,
+        employee: _name.text.trim(),
+        createdAt: _now(),
+        onlyShiftDays: _onlyShiftDays,
+        pdf: pdf,
+      );
+      _toast('Звіт збережено в архіві (вкладка «Звіти»).');
+    } catch (e) {
+      AppLog.add('звіт: не вдалося зберегти в архів: $e');
+      _toast('Не вдалося зберегти звіт в архів.');
+    } finally {
+      if (mounted) setState(() => _archiving = false);
+    }
+  }
+
   void _toast(String text) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
@@ -214,7 +243,17 @@ class _MonthReportPageState extends State<MonthReportPage> {
     final theme = Theme.of(context);
     final ready = _pdf != null && _error == null;
     return Scaffold(
-      appBar: AppBar(title: const Text('Звіт за місяць')),
+      appBar: AppBar(
+        title: const Text('Звіт за місяць'),
+        actions: [
+          IconButton(
+            key: const Key('report-print'),
+            tooltip: 'Друк',
+            onPressed: ready ? _print : null,
+            icon: const Icon(Icons.print_outlined),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -285,14 +324,16 @@ class _MonthReportPageState extends State<MonthReportPage> {
                       label: const Text('Поділитись або зберегти'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    key: const Key('report-print'),
-                    onPressed: ready ? _print : null,
-                    style: OutlinedButton.styleFrom(minimumSize: const Size(64, 52)),
-                    icon: const Icon(Icons.print_outlined),
-                    label: const Text('Друк'),
-                  ),
+                  if (widget.archive != null) ...[
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      key: const Key('report-archive'),
+                      onPressed: (ready && !_archiving) ? _saveToArchive : null,
+                      style: OutlinedButton.styleFrom(minimumSize: const Size(64, 52)),
+                      icon: const Icon(Icons.inventory_2_outlined),
+                      label: const Text('В архів'),
+                    ),
+                  ],
                 ],
               ),
             ),

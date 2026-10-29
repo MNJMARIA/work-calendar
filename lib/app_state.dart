@@ -56,6 +56,17 @@ class AppState extends ChangeNotifier {
   /// Ім'я працівника для звітів (ПІБ).
   String _employeeName = '';
 
+  /// Нагадування про початок зміни (у дні, коли в календарі є вихід).
+  bool _remindStart = false;
+  int _remindStartMinutes = 7 * 60 + 30;
+
+  /// Нагадування про кінець зміни (теж у дні з виходом).
+  bool _remindEnd = false;
+  int _remindEndMinutes = 20 * 60;
+
+  /// Сповіщення про нові версії додатка.
+  bool _pushUpdates = true;
+
   /// Коли запущено таймер (null — таймер не йде).
   DateTime? _timerStart;
 
@@ -67,6 +78,11 @@ class AppState extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   int get defaultShiftMinutes => _defaultShiftMinutes;
   String get employeeName => _employeeName;
+  bool get remindStart => _remindStart;
+  int get remindStartMinutes => _remindStartMinutes;
+  bool get remindEnd => _remindEnd;
+  int get remindEndMinutes => _remindEndMinutes;
+  bool get pushUpdates => _pushUpdates;
   DateTime? get timerStart => _timerStart;
   bool get timerRunning => _timerStart != null;
 
@@ -335,6 +351,39 @@ class AppState extends ChangeNotifier {
     _prefs.setString(kPlanKey, jsonEncode(_plan));
   }
 
+  void setRemindStart(bool value) {
+    if (value == _remindStart) return;
+    _remindStart = value;
+    _saveSettings();
+    notifyListeners();
+  }
+
+  void setRemindStartMinutes(int minutes) {
+    _remindStartMinutes = minutes < 0 ? 0 : (minutes > 1439 ? 1439 : minutes);
+    _saveSettings();
+    notifyListeners();
+  }
+
+  void setRemindEnd(bool value) {
+    if (value == _remindEnd) return;
+    _remindEnd = value;
+    _saveSettings();
+    notifyListeners();
+  }
+
+  void setRemindEndMinutes(int minutes) {
+    _remindEndMinutes = minutes < 0 ? 0 : (minutes > 1439 ? 1439 : minutes);
+    _saveSettings();
+    notifyListeners();
+  }
+
+  void setPushUpdates(bool value) {
+    if (value == _pushUpdates) return;
+    _pushUpdates = value;
+    _saveSettings();
+    notifyListeners();
+  }
+
   /// Запам'ятати ім'я працівника для звітів.
   void setEmployeeName(String name) {
     final value = name.trim();
@@ -352,6 +401,11 @@ class AppState extends ChangeNotifier {
         'defaultShiftMinutes': _defaultShiftMinutes,
         'theme': _themeMode.name,
         'employee': _employeeName,
+        'remindStart': _remindStart,
+        'remindStartMinutes': _remindStartMinutes,
+        'remindEnd': _remindEnd,
+        'remindEndMinutes': _remindEndMinutes,
+        'pushUpdates': _pushUpdates,
       }),
     );
   }
@@ -383,6 +437,11 @@ class AppState extends ChangeNotifier {
         _defaultShiftMinutes =
             (m['defaultShiftMinutes'] as int?) ?? kDefaultShiftMinutes;
         _employeeName = (m['employee'] as String?) ?? '';
+        _remindStart = (m['remindStart'] as bool?) ?? false;
+        _remindStartMinutes = (m['remindStartMinutes'] as int?) ?? 7 * 60 + 30;
+        _remindEnd = (m['remindEnd'] as bool?) ?? false;
+        _remindEndMinutes = (m['remindEndMinutes'] as int?) ?? 20 * 60;
+        _pushUpdates = (m['pushUpdates'] as bool?) ?? true;
         final theme = m['theme'] as String?;
         _themeMode = ThemeMode.values.firstWhere(
               (e) => e.name == theme,
