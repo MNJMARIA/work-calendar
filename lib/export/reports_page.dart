@@ -23,13 +23,14 @@ class ReportsPage extends StatelessWidget {
 
   final AppState state;
 
-  void _openNew(BuildContext context, DateTime month) {
+  void _openNew(BuildContext context, DateTime day, ReportKind kind) {
     final services = AppServicesScope.of(context);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => MonthReportPage(
           state: state,
-          initialMonth: month,
+          initialMonth: day,
+          initialKind: kind,
           suggestedName: services.account?.user?.name ?? '',
           archive: services.archive,
         ),
@@ -51,7 +52,7 @@ class ReportsPage extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Видалити звіт?'),
         content: Text(
-          '${kMonthsNominative[item.month - 1]} ${item.year}, сформовано ${fmtDateTime(item.createdAt)}. '
+          '${item.title}, сформовано ${fmtDateTime(item.createdAt)}. '
               'Скасувати це не вийде.',
         ),
         actions: [
@@ -104,27 +105,33 @@ class ReportsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Офіційний документ PDF: підсумок за місяць, тижні, щоденний облік і місця для підписів.',
+                    'Офіційний документ PDF за день, тиждень або місяць: підсумок, облік по днях і місця для підписів. Період можна змінити на екрані звіту.',
                     style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 14),
-                  Row(
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
                     children: [
-                      Expanded(
-                        child: FilledButton(
-                          key: const Key('reports-current'),
-                          onPressed: () => _openNew(context, now),
-                          child: Text('Цей місяць'),
-                        ),
+                      OutlinedButton(
+                        key: const Key('reports-today'),
+                        onPressed: () => _openNew(context, now, ReportKind.day),
+                        child: const Text('Сьогодні'),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          key: const Key('reports-previous'),
-                          onPressed: () => _openNew(context, previous),
-                          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 52)),
-                          child: const Text('Минулий місяць'),
-                        ),
+                      OutlinedButton(
+                        key: const Key('reports-week'),
+                        onPressed: () => _openNew(context, now, ReportKind.week),
+                        child: const Text('Цей тиждень'),
+                      ),
+                      FilledButton(
+                        key: const Key('reports-current'),
+                        onPressed: () => _openNew(context, now, ReportKind.month),
+                        child: const Text('Цей місяць'),
+                      ),
+                      OutlinedButton(
+                        key: const Key('reports-previous'),
+                        onPressed: () => _openNew(context, previous, ReportKind.month),
+                        child: const Text('Минулий місяць'),
                       ),
                     ],
                   ),
@@ -166,7 +173,7 @@ class ReportsPage extends StatelessWidget {
                         key: Key('archive-item-${item.id}'),
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.picture_as_pdf_outlined),
-                        title: Text('${kMonthsNominative[item.month - 1]} ${item.year}'),
+                        title: Text(item.title),
                         subtitle: Text(
                           'Сформовано ${fmtDateTime(item.createdAt)}\n'
                               '${item.employee.isEmpty ? 'без імені' : item.employee} · ${fmtSize(item.sizeBytes)}',
@@ -282,7 +289,7 @@ class _ArchivedReportPageState extends State<ArchivedReportPage> {
     }
     return Scaffold(
       appBar: AppBar(
-        title: Text('${kMonthsNominative[item.month - 1]} ${item.year}'),
+        title: Text(item.title),
         actions: [
           IconButton(
             key: const Key('archived-share'),

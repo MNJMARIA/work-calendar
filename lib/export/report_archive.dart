@@ -22,6 +22,9 @@ class ArchivedReport {
     required this.createdAt,
     required this.sizeBytes,
     required this.onlyShiftDays,
+    this.kind = ReportKind.month,
+    this.from,
+    this.to,
   });
 
   final String id;
@@ -32,7 +35,28 @@ class ArchivedReport {
   final int sizeBytes;
   final bool onlyShiftDays;
 
-  String get fileName => reportFileName(year, month);
+  /// За який період звіт (старі записи без цього поля — місячні).
+  final ReportKind kind;
+  final DateTime? from;
+  final DateTime? to;
+
+  DateTime get periodFrom => from ?? DateTime(year, month, 1);
+  DateTime get periodTo => to ?? DateTime(year, month + 1, 0);
+
+  String get fileName => reportFileNameFor(kind, periodFrom, periodTo);
+
+  /// «Жовтень 2026», «Тиждень 19.10.2026 – 25.10.2026», «День 25.10.2026».
+  String get title {
+    final text = reportPeriodTitle(kind, periodFrom, periodTo);
+    switch (kind) {
+      case ReportKind.month:
+        return text;
+      case ReportKind.week:
+        return 'Тиждень $text';
+      case ReportKind.day:
+        return 'День $text';
+    }
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -42,6 +66,9 @@ class ArchivedReport {
     'createdAt': createdAt.millisecondsSinceEpoch,
     'size': sizeBytes,
     'onlyShiftDays': onlyShiftDays,
+    'kind': kind.index,
+    if (from != null) 'from': from!.millisecondsSinceEpoch,
+    if (to != null) 'to': to!.millisecondsSinceEpoch,
   };
 
   static ArchivedReport fromJson(Map<String, dynamic> m) {
@@ -53,8 +80,16 @@ class ArchivedReport {
       createdAt: DateTime.fromMillisecondsSinceEpoch(m['createdAt'] as int),
       sizeBytes: (m['size'] as int?) ?? 0,
       onlyShiftDays: (m['onlyShiftDays'] as bool?) ?? false,
+      kind: _kindOf(m['kind']),
+      from: m['from'] is int ? DateTime.fromMillisecondsSinceEpoch(m['from'] as int) : null,
+      to: m['to'] is int ? DateTime.fromMillisecondsSinceEpoch(m['to'] as int) : null,
     );
   }
+}
+
+ReportKind _kindOf(Object? raw) {
+  if (raw is int && raw >= 0 && raw < ReportKind.values.length) return ReportKind.values[raw];
+  return ReportKind.month;
 }
 
 /// Спільний інтерфейс архіву. Екрани слухають його, як ChangeNotifier.
@@ -70,6 +105,9 @@ abstract class ReportArchive extends ChangeNotifier {
     required DateTime createdAt,
     required bool onlyShiftDays,
     required Uint8List pdf,
+    ReportKind kind = ReportKind.month,
+    DateTime? from,
+    DateTime? to,
   });
 
   /// Прочитати PDF (null, якщо файл зник).
@@ -96,6 +134,9 @@ class MemoryReportArchive extends ReportArchive {
     required DateTime createdAt,
     required bool onlyShiftDays,
     required Uint8List pdf,
+    ReportKind kind = ReportKind.month,
+    DateTime? from,
+    DateTime? to,
   }) async {
     final item = ArchivedReport(
       id: '${++_counter}',
@@ -105,6 +146,9 @@ class MemoryReportArchive extends ReportArchive {
       createdAt: createdAt,
       sizeBytes: pdf.length,
       onlyShiftDays: onlyShiftDays,
+      kind: kind,
+      from: from,
+      to: to,
     );
     _files[item.id] = pdf;
     _items = [item, ..._items];
@@ -166,6 +210,9 @@ class FileReportArchive extends ReportArchive {
     required DateTime createdAt,
     required bool onlyShiftDays,
     required Uint8List pdf,
+    ReportKind kind = ReportKind.month,
+    DateTime? from,
+    DateTime? to,
   }) async {
     await _dir.create(recursive: true);
     var stamp = createdAt.millisecondsSinceEpoch;
@@ -182,6 +229,9 @@ class FileReportArchive extends ReportArchive {
       createdAt: createdAt,
       sizeBytes: pdf.length,
       onlyShiftDays: onlyShiftDays,
+      kind: kind,
+      from: from,
+      to: to,
     );
     _items = [item, ..._items];
     await _save();

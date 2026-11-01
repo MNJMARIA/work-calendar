@@ -52,16 +52,58 @@ class ReportWeek {
   final int normMinutes;
 }
 
+/// За який період звіт.
+enum ReportKind { month, week, day }
+
+/// Підписи для вибору періоду (у тому ж порядку, що й ReportKind).
+const List<String> kReportKindLabels = ['Місяць', 'Тиждень', 'День'];
+
+/// Межі періоду для дати [anchor]: місяць — весь місяць, тиждень — пн–нд,
+/// день — сама дата.
+({DateTime from, DateTime to}) reportRange(ReportKind kind, DateTime anchor) {
+  final d = dateOnly(anchor);
+  switch (kind) {
+    case ReportKind.month:
+      return (from: DateTime(d.year, d.month, 1), to: DateTime(d.year, d.month, daysInMonth(d.year, d.month)));
+    case ReportKind.week:
+      final monday = mondayOf(d);
+      return (from: monday, to: addDays(monday, 6));
+    case ReportKind.day:
+      return (from: d, to: d);
+  }
+}
+
+/// Звіт за період (місяць, тиждень або один день).
 class MonthReport {
   MonthReport({
-    required this.year,
-    required this.month,
+    required int year,
+    required int month,
     required Map<String, int> shifts,
     required DateTime today,
-  })  : today = dateOnly(today),
-        days = _buildDays(year, month, shifts, dateOnly(today)) {
-    normMinutes = monthNormMinutes(year, month);
-    normWorkdays = workdaysInMonth(year, month);
+  }) : this._(
+    ReportKind.month,
+    DateTime(year, month, 1),
+    DateTime(year, month, daysInMonth(year, month)),
+    shifts,
+    today,
+  );
+
+  /// Звіт за місяць, тиждень або день, до якого належить [anchor].
+  factory MonthReport.forKind(
+      ReportKind kind,
+      DateTime anchor, {
+        required Map<String, int> shifts,
+        required DateTime today,
+      }) {
+    final range = reportRange(kind, anchor);
+    return MonthReport._(kind, range.from, range.to, shifts, today);
+  }
+
+  MonthReport._(this.kind, this.firstDay, this.lastDay, Map<String, int> shifts, DateTime today)
+      : today = dateOnly(today),
+        days = _buildDays(firstDay, lastDay, shifts, dateOnly(today)) {
+    normWorkdays = days.where((d) => d.date.weekday <= DateTime.friday).length;
+    normMinutes = normWorkdays * kDayNormMinutes;
     for (final d in days) {
       if (!d.hasShift) continue;
       if (d.future) {
@@ -76,10 +118,14 @@ class MonthReport {
     weeks = _buildWeeks();
   }
 
-  final int year;
-  final int month;
+  final ReportKind kind;
+  final DateTime firstDay;
+  final DateTime lastDay;
   final DateTime today;
   final List<ReportDay> days;
+
+  int get year => firstDay.year;
+  int get month => firstDay.month;
 
   late final int normMinutes;
   late final int normWorkdays;
@@ -90,10 +136,7 @@ class MonthReport {
   int longestMinutes = 0;
   late final List<ReportWeek> weeks;
 
-  DateTime get firstDay => DateTime(year, month, 1);
-  DateTime get lastDay => DateTime(year, month, daysInMonth(year, month));
-
-  /// Місяць уже закінчився (сьогодні пізніше за його останній день).
+  /// Період уже закінчився (сьогодні пізніше за його останній день).
   bool get finished => today.isAfter(lastDay);
 
   /// Різниця з нормою: плюс — понаднормово, мінус — не вистачає.
@@ -103,14 +146,13 @@ class MonthReport {
   int get averageMinutes => workedShifts == 0 ? 0 : (workedMinutes / workedShifts).round();
 
   static List<ReportDay> _buildDays(
-      int year,
-      int month,
+      DateTime first,
+      DateTime last,
       Map<String, int> shifts,
       DateTime today,
       ) {
     final result = <ReportDay>[];
-    for (var day = 1; day <= daysInMonth(year, month); day++) {
-      final date = DateTime(year, month, day);
+    for (var date = first; !date.isAfter(last); date = addDays(date, 1)) {
       result.add(
         ReportDay(
           date: date,
@@ -171,8 +213,43 @@ String fmtSigned(int minutes) {
   return '$sign${fmtHours(minutes.abs())}';
 }
 
-/// Назва файлу звіту: Zvit_2026-10.pdf
+/// Назва файлу звіту за місяць: Zvit_2026-10.pdf
 String reportFileName(int year, int month) => 'Zvit_$year-${pad2(month)}.pdf';
+
+/// Назва файлу для будь-якого періоду:
+/// місяць Zvit_2026-10.pdf, тиждень Zvit_2026-10-19_2026-10-25.pdf, день Zvit_2026-10-25.pdf
+String reportFileNameFor(ReportKind kind, DateTime from, DateTime to) {
+  switch (kind) {
+    case ReportKind.month:
+      return reportFileName(from.year, from.month);
+    case ReportKind.week:
+      return 'Zvit_${dayKey(from)}_${dayKey(to)}.pdf';
+    case ReportKind.day:
+      return 'Zvit_${dayKey(from)}.pdf';
+  }
+}
+
+/// Заголовок періоду: «Жовтень 2026», «19.10.2026 – 25.10.2026», «25.10.2026».
+String reportPeriodTitle(ReportKind kind, DateTime from, DateTime to) {
+  switch (kind) {
+    case ReportKind.month:
+      return '${kMonthsNominative[from.month - 1]} ${from.year}';
+    case ReportKind.week:
+      return '${fmtDate(from)} – ${fmtDate(to)}';
+    case ReportKind.day:
+      return fmtDate(from);
+  }
+}
+
+/// «1 робочий день», «3 робочі дні», «22 робочі дні» (правильна форма).
+String workdaysLabel(int n) {
+  final last = n % 10;
+  final lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 14) return '$n робочих днів';
+  if (last == 1) return '$n робочий день';
+  if (last >= 2 && last <= 4) return '$n робочі дні';
+  return '$n робочих днів';
+}
 
 // ─────────────────────────────────────────────────────────────
 // PDF
@@ -188,12 +265,13 @@ final PdfColor _muted = PdfColor.fromInt(0xFF5B6475);
 ByteData _bytesOf(Uint8List list) =>
     ByteData.view(list.buffer, list.offsetInBytes, list.lengthInBytes);
 
-/// Збирає PDF-звіт. [regularFont] і [boldFont] — файли шрифту з українськими
-/// літерами (у додатку лежать у assets/fonts). Повертає готовий PDF-файл.
 /// Розміри тексту звіту: звичайний, великий, дуже великий.
 const List<double> kReportTextScales = [1.0, 1.25, 1.5];
 const List<String> kReportTextLabels = ['Звичайний', 'Великий', 'Дуже великий'];
 
+/// Збирає PDF-звіт за місяць, тиждень або день. [regularFont] і [boldFont] —
+/// файли шрифту з українськими літерами (у додатку лежать у assets/fonts).
+/// Повертає готовий PDF-файл. Місячний звіт має «стандартний» вигляд.
 Future<Uint8List> buildMonthReportPdf(
     MonthReport report, {
       required String employee,
@@ -205,10 +283,14 @@ Future<Uint8List> buildMonthReportPdf(
     }) async {
   final base = pw.Font.ttf(_bytesOf(regularFont));
   final bold = pw.Font.ttf(_bytesOf(boldFont));
-  final monthTitle = '${kMonthsNominative[report.month - 1]} ${report.year}';
+  final periodTitle = reportPeriodTitle(report.kind, report.firstDay, report.lastDay);
+  final isMonth = report.kind == ReportKind.month;
+  final isDay = report.kind == ReportKind.day;
+  final unitName = isMonth ? 'місяць' : (report.kind == ReportKind.week ? 'тиждень' : 'день');
+  final dailyNo = isMonth ? 3 : 2;
 
   final doc = pw.Document(
-    title: 'Звіт про відпрацьований робочий час, $monthTitle',
+    title: 'Звіт про відпрацьований робочий час, $periodTitle',
     author: employee.isEmpty ? 'Робочий календар' : employee,
     creator: 'Робочий календар',
     theme: pw.ThemeData.withFont(base: base, bold: bold, italic: base, boldItalic: bold),
@@ -236,10 +318,10 @@ Future<Uint8List> buildMonthReportPdf(
     );
   }
 
-  pw.Widget heading(String text) {
+  pw.Widget heading(int number, String text) {
     return pw.Padding(
       padding: pw.EdgeInsets.only(top: 16, bottom: 6),
-      child: pw.Text(text, style: style(size: 12.5, strong: true, color: _accent)),
+      child: pw.Text('$number. $text', style: style(size: 12.5, strong: true, color: _accent)),
     );
   }
 
@@ -264,18 +346,20 @@ Future<Uint8List> buildMonthReportPdf(
   // ── Підсумок ──
   final summaryRows = <List<String>>[
     [
-      'Норма робочого часу за місяць',
-      '${fmtDuration(report.normMinutes)} (${report.normWorkdays} робочих днів × 8 год)',
+      isMonth ? 'Норма робочого часу за місяць' : 'Норма робочого часу за $unitName',
+      '${fmtDuration(report.normMinutes)} (${workdaysLabel(report.normWorkdays)} × 8 год)',
     ],
     ['Відпрацьовано (по сьогодні)', fmtDuration(report.workedMinutes)],
     ['Кількість виходів', '${report.workedShifts}'],
-    [
-      'Середня тривалість виходу',
-      report.workedShifts == 0 ? '—' : fmtDuration(report.averageMinutes),
-    ],
-    [
-      'Найдовший вихід',
-      report.workedShifts == 0 ? '—' : fmtDuration(report.longestMinutes),
+    if (!isDay) ...[
+      [
+        'Середня тривалість виходу',
+        report.workedShifts == 0 ? '—' : fmtDuration(report.averageMinutes),
+      ],
+      [
+        'Найдовший вихід',
+        report.workedShifts == 0 ? '—' : fmtDuration(report.longestMinutes),
+      ],
     ],
     if (report.finished)
       [
@@ -289,7 +373,7 @@ Future<Uint8List> buildMonthReportPdf(
       ],
     if (report.plannedShifts > 0)
       [
-        'Заплановано до кінця місяця',
+        isMonth ? 'Заплановано до кінця місяця' : (isDay ? 'Заплановано' : 'Заплановано до кінця тижня'),
         '${fmtDuration(report.plannedMinutes)} (${report.plannedShifts} виходів)',
       ],
   ];
@@ -341,7 +425,11 @@ Future<Uint8List> buildMonthReportPdf(
         pw.SizedBox(height: 2),
         pw.Center(
           child: pw.Text(
-            'за ${kMonthsNominative[report.month - 1].toLowerCase()} ${report.year} року',
+            isMonth
+                ? 'за ${kMonthsNominative[report.month - 1].toLowerCase()} ${report.year} року'
+                : (isDay
+                ? 'за ${fmtDate(report.firstDay)}, ${kWeekdaysFull[report.firstDay.weekday - 1]}'
+                : 'за тиждень ${fmtDate(report.firstDay)} – ${fmtDate(report.lastDay)}'),
             style: style(size: 12.5),
           ),
         ),
@@ -356,7 +444,7 @@ Future<Uint8List> buildMonthReportPdf(
           children: [
             for (final row in [
               ['Працівник:', employee.isEmpty ? '________________________________' : employee],
-              ['Звітний період:', '${fmtDate(report.firstDay)} – ${fmtDate(report.lastDay)}'],
+              ['Звітний період:', isDay ? fmtDate(report.firstDay) : '${fmtDate(report.firstDay)} – ${fmtDate(report.lastDay)}'],
               ['Дата формування:', fmtDate(generatedAt)],
             ])
               pw.TableRow(
@@ -367,7 +455,7 @@ Future<Uint8List> buildMonthReportPdf(
               ),
           ],
         ),
-        heading('1. Підсумок за місяць'),
+        heading(1, 'Підсумок за $unitName'),
         pw.Table(
           border: border,
           columnWidths: {
@@ -384,8 +472,8 @@ Future<Uint8List> buildMonthReportPdf(
               ),
           ],
         ),
-        heading('2. Розподіл за тижнями'),
-        pw.Table(
+        if (isMonth) heading(2, 'Розподіл за тижнями'),
+        if (isMonth) pw.Table(
           border: border,
           columnWidths: {
             0: pw.FixedColumnWidth(24 * textScale),
@@ -423,7 +511,7 @@ Future<Uint8List> buildMonthReportPdf(
               ),
           ],
         ),
-        heading('3. Щоденний облік'),
+        heading(dailyNo, isDay ? 'Облік за день' : 'Щоденний облік'),
         pw.Table(
           border: border,
           columnWidths: {

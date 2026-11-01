@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:work_calendar/app_state.dart';
+import 'package:work_calendar/export/month_report.dart';
 import 'package:work_calendar/export/month_report_page.dart';
 import 'package:work_calendar/export/report_archive.dart';
 import 'package:work_calendar/export/reports_page.dart';
@@ -83,6 +84,42 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final archive = FileReportArchive(prefs, Directory.systemTemp);
       expect(archive.items, isEmpty);
+    });
+
+    test('тижневий і денний звіти: період, назва й заголовок зберігаються', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final dir = Directory.systemTemp.createTempSync('wc_archive_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final archive = FileReportArchive(prefs, dir);
+      final week = await archive.add(
+        year: 2026, month: 10, employee: '', createdAt: DateTime(2026, 10, 26, 8, 0),
+        onlyShiftDays: false, pdf: pdfBytes(10),
+        kind: ReportKind.week, from: DateTime(2026, 10, 19), to: DateTime(2026, 10, 25),
+      );
+      final day = await archive.add(
+        year: 2026, month: 10, employee: '', createdAt: DateTime(2026, 10, 26, 9, 0),
+        onlyShiftDays: false, pdf: pdfBytes(10),
+        kind: ReportKind.day, from: DateTime(2026, 10, 25), to: DateTime(2026, 10, 25),
+      );
+      expect(week.title, 'Тиждень 19.10.2026 – 25.10.2026');
+      expect(week.fileName, 'Zvit_2026-10-19_2026-10-25.pdf');
+      expect(day.title, 'День 25.10.2026');
+      expect(day.fileName, 'Zvit_2026-10-25.pdf');
+
+      final again = FileReportArchive(prefs, dir);
+      final loadedDay = again.items.firstWhere((e) => e.id == day.id);
+      expect(loadedDay.kind, ReportKind.day);
+      expect(loadedDay.title, 'День 25.10.2026');
+    });
+
+    test('старі записи без поля «період» читаються як місячні', () {
+      final old = ArchivedReport.fromJson({
+        'id': '1', 'year': 2026, 'month': 9, 'employee': '', 'createdAt': 0, 'size': 5,
+      });
+      expect(old.kind, ReportKind.month);
+      expect(old.title, 'Вересень 2026');
+      expect(old.fileName, 'Zvit_2026-09.pdf');
     });
 
     test('розмір читабельно', () {

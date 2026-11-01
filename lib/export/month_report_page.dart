@@ -1,5 +1,5 @@
-// Екран «Звіт за місяць»: вибір місяця й імені, перегляд PDF,
-// кнопки «Поділитись або зберегти» та «Друк».
+// Екран «Звіт»: вибір періоду (день, тиждень, місяць) і імені, перегляд PDF,
+// кнопки «Поділитись або зберегти», «В архів» і «Друк».
 
 import 'dart:async';
 import 'dart:typed_data';
@@ -35,6 +35,7 @@ class MonthReportPage extends StatefulWidget {
     super.key,
     required this.state,
     required this.initialMonth,
+    this.initialKind = ReportKind.month,
     this.suggestedName = '',
     this.archive,
     this.pdfBuilder,
@@ -45,7 +46,12 @@ class MonthReportPage extends StatefulWidget {
   });
 
   final AppState state;
+
+  /// Будь-яка дата потрібного періоду (для місяця — його перший день або будь-який інший).
   final DateTime initialMonth;
+
+  /// За який період відкрити звіт спочатку.
+  final ReportKind initialKind;
 
   /// Ім'я, яке підставити, якщо користувач ще не вводив своє (ім'я з акаунта).
   final String suggestedName;
@@ -71,7 +77,8 @@ class MonthReportPage extends StatefulWidget {
 }
 
 class _MonthReportPageState extends State<MonthReportPage> {
-  late DateTime _month;
+  late DateTime _anchor;
+  late ReportKind _kind;
   final TextEditingController _name = TextEditingController();
   bool _onlyShiftDays = false;
   Uint8List? _pdf;
@@ -84,12 +91,24 @@ class _MonthReportPageState extends State<MonthReportPage> {
 
   DateTime _now() => (widget.clock ?? DateTime.now)();
 
-  String get _fileName => reportFileName(_month.year, _month.month);
+  ({DateTime from, DateTime to}) get _range => reportRange(_kind, _anchor);
+
+  String get _fileName => reportFileNameFor(_kind, _range.from, _range.to);
+
+  String get _title => reportPeriodTitle(_kind, _range.from, _range.to);
+
+  MonthReport _makeReport(DateTime now) => MonthReport.forKind(
+    _kind,
+    _anchor,
+    shifts: widget.state.shifts,
+    today: now,
+  );
 
   @override
   void initState() {
     super.initState();
-    _month = DateTime(widget.initialMonth.year, widget.initialMonth.month);
+    _anchor = dateOnly(widget.initialMonth);
+    _kind = widget.initialKind;
     final saved = widget.state.employeeName;
     _name.text = saved.isNotEmpty ? saved : widget.suggestedName;
     _build();
@@ -107,12 +126,7 @@ class _MonthReportPageState extends State<MonthReportPage> {
     setState(() => _error = null);
     try {
       final now = _now();
-      final report = MonthReport(
-        year: _month.year,
-        month: _month.month,
-        shifts: widget.state.shifts,
-        today: now,
-      );
+      final report = _makeReport(now);
       final custom = widget.pdfBuilder;
       final Uint8List bytes;
       if (custom != null) {
@@ -138,9 +152,25 @@ class _MonthReportPageState extends State<MonthReportPage> {
     }
   }
 
-  void _shiftMonth(int delta) {
+  void _shiftPeriod(int delta) {
     setState(() {
-      _month = DateTime(_month.year, _month.month + delta);
+      switch (_kind) {
+        case ReportKind.month:
+          _anchor = DateTime(_anchor.year, _anchor.month + delta, 1);
+        case ReportKind.week:
+          _anchor = addDays(_anchor, 7 * delta);
+        case ReportKind.day:
+          _anchor = addDays(_anchor, delta);
+      }
+      _pdf = null;
+    });
+    _build();
+  }
+
+  void _changeKind(ReportKind kind) {
+    if (kind == _kind) return;
+    setState(() {
+      _kind = kind;
       _pdf = null;
     });
     _build();
@@ -188,9 +218,13 @@ class _MonthReportPageState extends State<MonthReportPage> {
     if (pdf == null || archive == null || _archiving) return;
     setState(() => _archiving = true);
     try {
+      final range = _range;
       await archive.add(
-        year: _month.year,
-        month: _month.month,
+        year: range.from.year,
+        month: range.from.month,
+        kind: _kind,
+        from: range.from,
+        to: range.to,
         employee: _name.text.trim(),
         createdAt: _now(),
         onlyShiftDays: _onlyShiftDays,
@@ -231,7 +265,7 @@ class _MonthReportPageState extends State<MonthReportPage> {
     final custom = widget.previewBuilder;
     if (custom != null) return custom(context, pdf, _fileName);
     return PdfPreview(
-      key: ValueKey('${_month.year}-${_month.month}-${pdf.length}-${pdf.hashCode}'),
+      key: ValueKey('$_title-${pdf.length}-${pdf.hashCode}'),
       build: (_) => pdf,
       useActions: false,
       canChangePageFormat: false,
@@ -248,7 +282,7 @@ class _MonthReportPageState extends State<MonthReportPage> {
     final ready = _pdf != null && _error == null;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Звіт за місяць'),
+        title: const Text('Звіт'),
         actions: [
           IconButton(
             key: const Key('report-print'),
@@ -265,24 +299,48 @@ class _MonthReportPageState extends State<MonthReportPage> {
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
               child: Column(
                 children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<ReportKind>(
+                      key: const Key('report-kind'),
+                      showSelectedIcon: false,
+                      style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                      segments: [
+                        for (final k in ReportKind.values)
+                          ButtonSegment<ReportKind>(
+                            value: k,
+                            label: Text(kReportKindLabels[k.index], key: Key('report-kind-${k.name}')),
+                          ),
+                      ],
+                      selected: {_kind},
+                      onSelectionChanged: (values) => _changeKind(values.first),
+                    ),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
                         key: const Key('report-prev'),
-                        tooltip: 'Попередній місяць',
-                        onPressed: () => _shiftMonth(-1),
+                        tooltip: 'Попередній період',
+                        onPressed: () => _shiftPeriod(-1),
                         icon: const Icon(Icons.chevron_left),
                       ),
-                      Text(
-                        '${kMonthsNominative[_month.month - 1]} ${_month.year}',
-                        key: const Key('report-title'),
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            _title,
+                            key: const Key('report-title'),
+                            maxLines: 1,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
                       ),
                       IconButton(
                         key: const Key('report-next'),
-                        tooltip: 'Наступний місяць',
-                        onPressed: () => _shiftMonth(1),
+                        tooltip: 'Наступний період',
+                        onPressed: () => _shiftPeriod(1),
                         icon: const Icon(Icons.chevron_right),
                       ),
                     ],
@@ -334,20 +392,21 @@ class _MonthReportPageState extends State<MonthReportPage> {
                       },
                     ),
                   ),
-                  SwitchListTile(
-                    key: const Key('report-only-shifts'),
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: const Text('Лише дні з виходами'),
-                    value: _onlyShiftDays,
-                    onChanged: (v) {
-                      setState(() {
-                        _onlyShiftDays = v;
-                        _pdf = null;
-                      });
-                      _build();
-                    },
-                  ),
+                  if (_kind != ReportKind.day)
+                    SwitchListTile(
+                      key: const Key('report-only-shifts'),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text('Лише дні з виходами'),
+                      value: _onlyShiftDays,
+                      onChanged: (v) {
+                        setState(() {
+                          _onlyShiftDays = v;
+                          _pdf = null;
+                        });
+                        _build();
+                      },
+                    ),
                 ],
               ),
             ),
