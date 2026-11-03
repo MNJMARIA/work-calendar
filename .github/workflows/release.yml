@@ -16,6 +16,7 @@ on:
     # Зміни лише в описах не випускають нову версію.
     paths-ignore:
       - '**.md'
+      - 'docs/**'
       - 'LICENSE'
       - 'firestore.rules'
 
