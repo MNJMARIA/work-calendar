@@ -15,10 +15,10 @@
 </div>
 
 <p align="center">
-  <img src="docs/screenshots/01-calendar-month-dark.png" alt="Календар місяця, темна тема" width="190">
-  <img src="docs/screenshots/08-calendar-week-light.png" alt="Тиждень, світла тема" width="190">
-  <img src="docs/screenshots/03-planning-dark.png" alt="Планування" width="190">
-  <img src="docs/screenshots/05-report-month.png" alt="PDF-звіт за місяць" width="190">
+  <img src="docs/screens/01-calendar-month-dark.png" alt="Календар місяця, темна тема" width="190">
+  <img src="docs/screens/08-calendar-week-light.png" alt="Тиждень, світла тема" width="190">
+  <img src="docs/screens/03-planning-dark.png" alt="Планування" width="190">
+  <img src="docs/screens/05-report-month.png" alt="PDF-звіт за місяць" width="190">
 </p>
 
 ## Для кого цей додаток
@@ -44,10 +44,10 @@
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/01-calendar-month-dark.png" width="200"><br><sub><b>Місяць</b><br>темна тема</sub></td>
-    <td align="center"><img src="docs/screenshots/02-calendar-day-dark.png" width="200"><br><sub><b>День</b><br>вихід відпрацьовано</sub></td>
-    <td align="center"><img src="docs/screenshots/08-calendar-week-light.png" width="200"><br><sub><b>Тиждень</b><br>світла тема</sub></td>
-    <td align="center"><img src="docs/screenshots/07-calendar-day-light.png" width="200"><br><sub><b>День</b><br>світла тема</sub></td>
+    <td align="center"><img src="docs/screens/01-calendar-month-dark.png" width="200"><br><sub><b>Місяць</b><br>темна тема</sub></td>
+    <td align="center"><img src="docs/screens/02-calendar-day-dark.png" width="200"><br><sub><b>День</b><br>вихід відпрацьовано</sub></td>
+    <td align="center"><img src="docs/screens/08-calendar-week-light.png" width="200"><br><sub><b>Тиждень</b><br>світла тема</sub></td>
+    <td align="center"><img src="docs/screens/07-calendar-day-light.png" width="200"><br><sub><b>День</b><br>світла тема</sub></td>
   </tr>
 </table>
 
@@ -61,9 +61,9 @@
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/10-start-shift-light.png" width="200"><br><sub><b>«Вийшов на роботу»</b><br>початок зміни</sub></td>
-    <td align="center"><img src="docs/screenshots/09-edit-shift-light.png" width="200"><br><sub><b>Тривалість виходу</b><br>колеса годин і хвилин</sub></td>
-    <td align="center"><img src="docs/screenshots/11-multiselect-light.png" width="200"><br><sub><b>Масовий вибір днів</b><br>змінити або прибрати</sub></td>
+    <td align="center"><img src="docs/screens/10-start-shift-light.png" width="200"><br><sub><b>«Вийшов на роботу»</b><br>початок зміни</sub></td>
+    <td align="center"><img src="docs/screens/09-edit-shift-light.png" width="200"><br><sub><b>Тривалість виходу</b><br>колеса годин і хвилин</sub></td>
+    <td align="center"><img src="docs/screens/11-multiselect-light.png" width="200"><br><sub><b>Масовий вибір днів</b><br>змінити або прибрати</sub></td>
   </tr>
 </table>
 
@@ -81,9 +81,9 @@
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/03-planning-dark.png" width="200"><br><sub><b>Прогноз місяця</b><br>факт + чернетка</sub></td>
-    <td align="center"><img src="docs/screenshots/14-planning-copy-dark.png" width="200"><br><sub><b>Копіювання</b><br>з календаря в чернетку</sub></td>
-    <td align="center"><img src="docs/screenshots/15-planning-clear-dark.png" width="200"><br><sub><b>Очистити чернетку</b><br>календар не зміниться</sub></td>
+    <td align="center"><img src="docs/screens/03-planning-dark.png" width="200"><br><sub><b>Прогноз місяця</b><br>факт + чернетка</sub></td>
+    <td align="center"><img src="docs/screens/14-planning-copy-dark.png" width="200"><br><sub><b>Копіювання</b><br>з календаря в чернетку</sub></td>
+    <td align="center"><img src="docs/screens/15-planning-clear-dark.png" width="200"><br><sub><b>Очистити чернетку</b><br>календар не зміниться</sub></td>
   </tr>
 </table>
 
@@ -99,10 +99,10 @@
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/05-report-month.png" width="200"><br><sub><b>Звіт за місяць</b></sub></td>
-    <td align="center"><img src="docs/screenshots/04-report-day.png" width="200"><br><sub><b>Звіт за день</b></sub></td>
-    <td align="center"><img src="docs/screenshots/06-reports-archive-dark.png" width="200"><br><sub><b>Архів звітів</b><br>темна тема</sub></td>
-    <td align="center"><img src="docs/screenshots/12-reports-archive-light.png" width="200"><br><sub><b>Архів звітів</b><br>світла тема</sub></td>
+    <td align="center"><img src="docs/screens/05-report-month.png" width="200"><br><sub><b>Звіт за місяць</b></sub></td>
+    <td align="center"><img src="docs/screens/04-report-day.png" width="200"><br><sub><b>Звіт за день</b></sub></td>
+    <td align="center"><img src="docs/screens/06-reports-archive-dark.png" width="200"><br><sub><b>Архів звітів</b><br>темна тема</sub></td>
+    <td align="center"><img src="docs/screens/12-reports-archive-light.png" width="200"><br><sub><b>Архів звітів</b><br>світла тема</sub></td>
   </tr>
 </table>
 
@@ -118,7 +118,7 @@
 
 <table>
   <tr>
-    <td align="center"><img src="docs/screenshots/13-settings-dark.png" width="200"><br><sub><b>Налаштування</b></sub></td>
+    <td align="center"><img src="docs/screens/13-settings-dark.png" width="200"><br><sub><b>Налаштування</b></sub></td>
   </tr>
 </table>
 
